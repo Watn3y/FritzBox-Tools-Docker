@@ -1,0 +1,4 @@
+services:
+  fb-tools:
+    image: watn3y/fritzbox-tools:latest
+    command: -h:all
