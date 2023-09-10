@@ -1,4 +1,4 @@
 services:
   fb-tools:
-    image: watn3y/fritzbox-tools:latest
+    image: ghcr.io/watn3y/fritzbox-tools:master
     command: -h:all
