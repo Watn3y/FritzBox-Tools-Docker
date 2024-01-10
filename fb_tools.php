@@ -5,7 +5,7 @@
 	This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 	You should have received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>. */
-if($ver = "fb_tools 0.38 (c) GPL 01.04.2023 by Michael Engelke <https://mengelke.de/.dg>") {
+if($ver = "fb_tools 0.40 (c) GPL 06.01.2024 by Michael Engelke <https://mengelke.de/.dg>") {
  if(!(isset($cfg) and is_array($cfg)))	// Testen ob $cfg existiert und ein array ist
   $cfg = array();			// Config-Variable anlegen
  foreach(array(				// Vorkonfiguration einzeln durchgehen
@@ -36,7 +36,7 @@ if($ver = "fb_tools 0.38 (c) GPL 01.04.2023 by Michael Engelke <https://mengelke
 	'fbtm'	=> 'fbtp_([\w-]+)\.php',// Plugin Preg_Match-Pattern
 	'fbtp'	=> 'plugins',		// Plugin-Pfad
 	'libs'	=> 'libs',		// PHP-Bibliotheken
-	'argn'	=> 'https?:|\w:|[\da-f]{2}:',// Args-Filter
+	'argn'	=> '\w+:\/\/|\w:|[\da-f]{2}:',// Args-Filter
 	'help'	=> false,		// Hilfe ausgeben
 	'dbug'	=> false,		// Debuginfos ausgeben
 	'oput'	=> false,		// Ausgaben speichern
@@ -95,22 +95,27 @@ if(!function_exists('hash')) {				// http://php.net/hash (Workaround für crc32b,
  }
 }
 if(!function_exists('strftime')) {			// http://php.net/strftime
- function strfime($data,$time=false,$last=0) {
+ function strftime($data,$time=false,$last=0) {
+  if(is_string($time))
+   $time = strtotime($time);
   if(!$time)
    $time = time();
-  if(preg_match_all('/(.)(.)/',"AlBFGoHHIhMiPaSsVWYYZTaDbMddejhMkGlgmmpAsUuNwwyyzO",$m))
-   $c = array_combine($m[1],$m[2]) + array('D' => 'm/d/y', 'x' => 'm/d/y', 'F' => 'Y-m-d',
-	'R' => 'H:i', 'T' => 'H:i:s', 'X' => 'H:i:s', 'r' => 'h:i:s A', 'c' => 'D M j H:i:s Y');
+  if(preg_match_all('/(\w)(\w(?=\w)|\w.*?(?=;|$))/',"AlBFGoHHIhMiPaSsVWYYZTaDbMddhMmmpAsUuNwwyyzOfuKBLLNIoSvZDm/d/y;xm/d/y;FY-m-d;RH:i;TH:i:s;XH:i:s;rh:i:s A;cD M j H:i:s Y;Oj.n.Y, H:i:s;qj.n.Y;QH:i:s",$m))
+   $c = array_combine($m[1],$m[2]);
   while(preg_match('/%(-?)(\w|%)/',substr($data,$last),$m,PREG_OFFSET_CAPTURE)) {
-   $new = isset($c[$a = $m[2][0]]) ? date($c[$a],$time) : (($a == 'j') ? substr("00".(date('z',$time) + 1),-3)
-	: (($a == 'C') ? floor(date('Y',$time) / 100) : (($a == 'g') ? substr(date('o',$time),-2) : (($a == 'U')
-	? substr("0".floor((date('z',$time) + date('w',strtotime(date('Y',$time)."-01-01"))) / 7),-2) : (($a == 'W')
-	? substr("0".floor((date('z',$time) + date('N',strtotime(date('Y',$time)."-01-01")) - 1) / 7),-2)
-	: preg_replace('/^%\w$/','',strtr($m[0][0],array("%n" => "\n", "%t" => "\t", "%-n" => "\n", "%-t" => "\t", "%%" => "%"))))))));
-   $data = substr_replace($data,$m[1][0] ? preg_replace('/^([+-])[0\s]?(\d*)$/','$1$2',$new) : $new,$last + $m[0][1],strlen($m[0][0]));
+   $new = isset($c[$a = $m[2][0]]) ? date($c[$a],$time)	: (($a == 'C') ? floor(date('Y',$time) / 100) : (($a == 'g') ? substr(date('o',$time),-2)
+	: (($a == 'j') ? substr("00".(date('z',$time) + 1),-3) : (($a == 'E') ? date('U',$time) % 864e2 + date('Z',$time)
+	: (($a == 'U') ? substr("0".(floor((date('z',$time) + date('N',strtotime(date('Y',$time)."-01-01"))) / 7)),-2)
+	: (($a == 'W') ? substr("0". floor((date('z',$time) + (($a = date('N',strtotime(date('Y',$time)."-01-01")) - 1 % 7) ? $a : 7)) / 7),-2)
+	: (($a == 'i' and $y = date('Y',$time) and $a = floor(1 + $y / 100) and $b = $y % 19 + 1 and $c = floor(3 * $a / 4) - 12
+	and $d = (11 * $b + 20 + floor((8 * $a + 5 ) / 25) - 5 -$c) % 30 and $d = 44 - $d -($d == 25 and $b > 11 or $d == 24 | 0)
+	and $d += ($d < 21 | 0) * 30) ? date('z',strtotime("$y-03-00 +".($d + 7 - (floor(5 * $y / 4) - $c - 10 + $d) % 7)." days")) + 1
+	: (($a == 'J') ? date($m[1][0] ? 'c' : 'r',$time) : (($c = strpos(' ekl',$a)) ? substr(" ".date(substr(" jGg",$c,1),$time),-2)
+	: preg_replace('/^%\w$/','',strtr($m[0][0],array("%n" => "\n", "%t" => "\t", "%-n" => "\n", "%-t" => "\t", "%%" => "%"))))))))))));
+   $data = substr_replace($data,$m[1][0] ? preg_replace('/^([+-]?)[0\s]*(\d+?)$/','$1$2',$new) : $new,$last + $m[0][1],strlen($m[0][0]));
    $last += strlen($m[0][0]) + $m[0][1];
   }
-  return $data;
+  return ($data !== "") ? (preg_match('/^(?!0\d)\d+$/',$data) ? intval($data) : $data) : false;
  }
 }
 function utf8($str,$mode=0) {				// UTF-8 Tool mode: Bit0 -> 0:decode 1:encode
@@ -128,7 +133,6 @@ function utf8($str,$mode=0) {				// UTF-8 Tool mode: Bit0 -> 0:decode 1:encode
   else
    $a = $str[0];
   if(isset($str['e']) or is_int($a)) {	// Ansi -> UTF8
-//   if(function_exists('utf8_encode') and !is_int($a)) return utf8_encode($a);
    if(($a = is_int($a) ? $a : ord($a)) < 128)
     return chr($a);
    $b = "";
@@ -140,7 +144,6 @@ function utf8($str,$mode=0) {				// UTF-8 Tool mode: Bit0 -> 0:decode 1:encode
    return chr((1 << 7 - $c) -1 << ++$c | $a).$b;
   }
   elseif(isset($str['d'])) {		// UTF8 -> Ansi
-//   if(function_exists('utf8_decode')) return utf8_decode($a);
    for($b = ord($a[0]) % (1 << 7 - strlen($a)), $c = 1; $c < strlen($a); $c++)
     $b = $b * 64 + (ord($a[$c]) & 63);
    return ($b < 256) ? chr($b) : "\\u".(($b < 65536) ? str_pad(dechex($b),4,0,STR_PAD_LEFT)
@@ -178,7 +181,7 @@ function file_contents($file,$data=false,$mode=false) {	// (Gepackte) Datei lese
    return true;
   if(strpos($file,'%') !== false)				// strftime auflösen
    $file = @strftime($file);
-  if(is_bool($mode) and !$mode)
+  if(is_bool($mode) and !$mode) {
    if(preg_match('/\.t?gz$/i',$file) and $fp = $cfg['zlib']['open']($file,'w'.$cfg['zlib']['mode'])) {// Write GZip
     dbug("Schreibe GZip-File: $file",9);
     $data = $cfg['zlib']['write']($fp,$data);
@@ -193,7 +196,8 @@ function file_contents($file,$data=false,$mode=false) {	// (Gepackte) Datei lese
    }
    elseif(preg_match('/\.zip$/i',$file) and !preg_match('/^PK\x03\x04/',$data))
     $data = data2zip(array(preg_replace('/.*?([^\/]*)\.zip$/','$1',$file) => $data));
-  $file = preg_replace('/\.(t?gz|t?bz(ip)?2?)$/i','',$file);// Pack-Extension löschen
+   $file = preg_replace('/\.(t?gz|t?bz(ip)?2?)$/i','',$file);	// Pack-Extension löschen
+  }
   if(function_exists('file_put_contents'))
    return file_put_contents($file,$data,$mode);			// Ungepackt schreiben
   else {							// file_put_contents ($mode ist nicht vollständig implemmentiert)
@@ -623,7 +627,7 @@ function phperr($no,$str,$file,$line) {			// PHP-Fehler Debuggen
  return false;
 }
 function makedir($dir,$mode=1) {			// Erstellt ein Verzeichnis und wechselt dorthin
- if(!$dir or ifset($dir,$GLOBALS['cfg']['ptar']))	// Self-Dir und Archive nicht bearbeiten
+ if(!$dir or ifset($dir,$GLOBALS['cfg']['ptar']) or ifset($dir,'/^php:/i'))	// Self-Dir, php: und Archive nicht bearbeiten
   return true;
  $dir = preg_replace('/[\\\\\/]+$/','',$dir);		// Abschlussshlash entfernen
  if(strpos($dir,'%') !== false)				// strftime auflösen (Problematische Zeichen werden umgewandelt)
@@ -763,9 +767,12 @@ function tar2array($file,$preg=false) {			// Liest ein Tar-Archiv vom File als A
   dbug("Entpacke Tar-Archiv aus Datei",9);
   $tar = array();
   while($meta = call_user_func($func[1],$fp,512) and preg_match('/^[^\0]+/',substr($meta,0,100),$name)) {
-   $data = substr_replace($meta,"        ",148,8);
-   for($crc=$a=0; $a < 512; $crc += ord($data[$a++]));
-   if($crc != octdec(substr($meta,148,6)))
+   for($a=0,$cu=$cs=256; $a < 512; $a += ($a == 147) ? 9 : 1) {
+    $cu += $b = ord($meta[$a]);
+    $ca += $b << 24 >> 24;
+   }
+   $b = octdec(substr($meta,148,7));
+   if($cu != $b and $ca != $b)
     return errmsg("16:Defektes Tar-Archiv",__FUNCTION__);
    if($size = octdec(substr($meta,124,11)))
     for($data = "", $a = $size + 512 - $size % 512; $a and ($var = call_user_func($func[1],$fp,$a)) !== false; $a -= strlen($var))
@@ -787,9 +794,12 @@ function datatar2array($tar,$preg=false) {		// Parst aus einer Variable ein Tar-
  $pos = 0;
  while($pos < strlen($tar) and $tar[$pos] != "\0") {
   $meta = array();
-  $data = substr_replace(substr($tar,$pos,512),"        ",148,8);// Buffer ohne Checksumme vorbereiten
-  for($crc=$a=0; $a < 512; $crc += ord($data[$a++]));		// Checksumme berechnen
-  if($crc != octdec(substr($tar,$pos + 148,6)))
+  for($a = 0, $cu = $cs = 256; $a < 512; $a += ($a == 147) ? 9 : 1) {
+   $cu += $b = ord($tar[$pos + $a]);
+   $ca += $b << 24 >> 24;
+  }
+  $b = octdec(substr($tar,$pos + 148,7));
+  if($cu != $b and $ca != $b)
    return errmsg("16:Defektes Tar-Archiv",__FUNCTION__);
   $a = $pos;
   foreach($array as $key => $var) {
@@ -847,7 +857,7 @@ function zip2array($data,$pass=array(),$zip=array(),$x=0) {// Liest ein ZIP-Arch
     $zip %= 32;
    elseif($zip < 0)
     $zip += 32;
-   $zip = !$zip ? ($data>>1 & 0x7fffffff) * 2 + ($data>>$zip & 1) : (($data < 0) ? ($data >> 1 & 0x7fffffff | 0x40000000) >> $zip - 1 : $data >> $zip);
+   $zip = !$zip ? ($data>>1 & 0x7FFFFFFF) * 2 + ($data>>$zip & 1) : (($data < 0) ? ($data >> 1 & 0x7FFFFFFF | 0x40000000) >> $zip - 1 : $data >> $zip);
   }
   elseif($pass == -5)				// imul (a,-5,b)
    $zip = call_user_func(__FUNCTION__,($data >> 16 & 65535) * ($c = $zip & 65535) + ($data &= 65535) * ($zip >> 16 & 65535) << 16,-4,0) + $data * $c;
@@ -867,7 +877,7 @@ function zip2array($data,$pass=array(),$zip=array(),$x=0) {// Liest ein ZIP-Arch
     $e = substr($data,$pos + 30 + ($d += call_user_func(__FUNCTION__,$data,$pos + 28)),($f = $g ? call_user_func(__FUNCTION__,$g[0],8,4) : call_user_func(__FUNCTION__,$data,$pos + 18,4)));	// Gepackte Daten holen (f = länge)
     $d += 30 + $f;														// Offset um Header mit Daten zu überspringen
     if(!(call_user_func(__FUNCTION__,$data,$pos + 6) & ~2062)	and (!$e or ($e = (($f = call_user_func(__FUNCTION__,$data,$pos + 8)) == 8) ? gzinflate($e)// Flags abfragen
-	: (($f == 12 and $cfg['bzip']) ? bzdecompress($e) : (!$f ? $e : ""))))							// UnZip
+	: (($f == 12 and $cfg['bzip']) ? bzdecompress($e) : (!$f ? $e : ""))) or $e === "")					// UnZip
 	and strlen($e) == ($g ? call_user_func(__FUNCTION__,$g[0],12,4) : call_user_func(__FUNCTION__,$data,$pos + 22,4))	// Stimmt die Länge?
 	and (hash('crc32b',$e,1) == ($g ? call_user_func(__FUNCTION__,$g[0],4,4,1) : call_user_func(__FUNCTION__,$data,$pos + 14,4,1)))) { // Entpackte Daten korrekt?
      if(substr($i,-1) != "/")
@@ -922,8 +932,10 @@ function zip2array($data,$pass=array(),$zip=array(),$x=0) {// Liest ein ZIP-Arch
        $i = 0;
       }
     }
-    if($i)
+    if($i) {
+     dbug("ZIP-Fehler: $pos");
      $data .= 0;												// Fehler erkennen (Sourcelänge verändern)
+    }
    }
    else														// Alle Header werden übersprungen (Ignoriert)
     $d = $c[2] ? 46 + call_user_func(__FUNCTION__,$data,$pos + 28) + call_user_func(__FUNCTION__,$data,$pos + 30) + call_user_func(__FUNCTION__,$data,$pos + 32)// \x01\x02 (Central directory file header)
@@ -1005,7 +1017,7 @@ function array2json($array,$opt=0,$c=0) {		// Macht aus einem Array eine JSON-Te
     $str .= ($ac ? "" : (($opt&2 and preg_match('/^(?!\d)\w+$/',$key)) ? $key : '"'.$key.'"').":").(is_bool($var) ? ($var ? "true" : "false")
 	: (is_string($var) ? '"'.preg_replace_callback('/(?P<'.($opt&4 ? 'u' : 's').'>[\x00-\x1f"\\\\\/])/',__FUNCTION__,$opt&1 ? utf8($var,1) : $var).'"'
 	: (is_numeric($var) ? $var : ((is_array($var) and $key !== 'GLOBALS' and $c < $GLOBALS['cfg']['jsdp'])
-	? call_user_func(__FUNCTION__,$var,$opt,$c+1) : ":null")))).",";
+	? call_user_func(__FUNCTION__,$var,$opt,$c+1) : "null")))).",";
    $str = ($ac ? "[" : "{").substr($str,0,-1).($ac ? "]" : "}");
   }
  return isset($str) ? $str : false;
@@ -1075,7 +1087,7 @@ function textTable($table,$cols=0,$col="|",$row="\n",$tab=" ",$sp=" ") { // Text
   return call_user_func_array(__FUNCTION__,$opts);
  }
  elseif(!$cols and $cols = $GLOBALS['cfg']['wrap'])
-  $cols -= trim($tab) ? 3 : 2;
+  $cols -= trim(is_array($tab) ? $tab[0] : $tab) ? 3 : 2;
  $esc = array();
  $pos = 0;
  $p = "[\x80-\xbf]";
@@ -1469,9 +1481,9 @@ function login($pass=0,$user=0,$uipw=0,$sid=0) {	// In der Fritz!Box einloggen
  elseif(is_bool($pass) and !$pass and !$sid) {		// Firmware-Version ermitteln
   if($cfg['fiwa'] == 100) {
    dbug("Ermittle Boxinfos");
-   if($data = request('GET','/jason_boxinfo.xml') and preg_match_all('/<([jeq]:(\w+))>([^<>]+)<\/\1>/m',$data,$array)) { // BoxInfos holen
-    dbug($array,4);
-    $cfg['boxinfo'] = array_combine($array[2],$array[3]);
+   if($data = request('GET','/jason_boxinfo.xml')) { // BoxInfos holen
+    dbug($data,4);
+    $cfg['boxinfo'] = xml2array(preg_replace('/\b[jeq]:(?=\w)/','',$data));
     $cfg['boxinfo']['Time'] = strtotime($cfg['http']['Date']);
     if(preg_match('/^\d+\.0*(\d+?)\.(\d+)(-\d+)?$/',$cfg['boxinfo']['Version'],$var)) // Firmware-Version sichern
      $cfg['fiwa'] = $var[1].$var[2];
@@ -1612,7 +1624,7 @@ function login($pass=0,$user=0,$uipw=0,$sid=0) {	// In der Fritz!Box einloggen
     return errmsg("Zwei-Faktor-Authentisierung fehlgeschlagen",__FUNCTION__);
    }
   }
-  return ($cfg['sid'] = $sid) ? $sid : errmsg(($var = ":Anmeldung fehlgeschlagen$err" and !ifset($pass,'/^[ -~]+$/')) ?
+  return ($cfg['sid'] = $sid) ? $sid : errmsg(($var = ":Anmeldung fehlgeschlagen$err".($pass ? " (Kennwort abgewiesen)" : "") and !ifset($pass,'/^[ -~]+$/')) ?
 	"5$var\nHinweis: Das Login-Kennwort enthält Sonderzeichen, die bei unterschiedlicher Zeichenkodierung Probleme bereiten können" : "4$var",__FUNCTION__);
  }
 }
@@ -1628,7 +1640,7 @@ function supportcode($str = false) {			// Supportcode aufschlüsseln
  return ($str or $str = request('GET','/cgi-bin/system_status')) ? ((preg_match('!
 	^\s*(?:(?:<[^>]+>\s*)*(?:.*\n)?|System Status[^-]*-*[\s\r\n]*)?
 	(([^<>]+?)-
-	([AB]|Kabel|Cable|Ohne)-
+	([AB-]|Kabel|Cable|Ohne(?:,\w+)?)-
 	([01]\d|2[0-3])([0-2]\d|3[01])(0\d|1[01])-
 	(\d\d)(\d\d)([0-2]\d|3[01])-
 	([0-7X]{6})-
@@ -1647,7 +1659,7 @@ function supportcode($str = false) {			// Supportcode aufschlüsseln
 	.(ifset($a[15]) ? "\nFirmware|$a[15].$a[16].$a[17]\nVersion|$a[18]" : "")
 	.(ifset($a[20]) ? "\nSprache|$a[20]" : "")
 	.(ifset($a[19]) ? "\nMarke|$a[19]" : "")
-	."\nAnnex|$a[3]"
+	.(ifset($a[3],'/^\w/') ? "\nAnnex|".preg_replace('/,pon/',' (Passive Optical Network)',$a[3]) : "")
 	."\n|\nLaufzeit|".preg_replace(array('/\b0*(\d+)(\D+)/','/(\b1\D+?)\D(?=,|$)/','/\b0+\D+/','/^\s+|,\s*$/','/^\s*$/'),array(' $1 $2','$1','','',0),"$a[7]Jahre,$a[6]Monate,$a[5]Tage,$a[4]Stunden,")
 	."\nNeustarts|".($a[8] * 32 + $a[9])
 	.(($a[10] and $a[10] != "XXXXXX") ? "\n|\nCRC32 (Bootloader)|".strtoupper(str_pad(dechex((intval($a[10],8) >> 2) ^ 65535).str_pad(substr(dechex(intval($a[11],8) ^ 65535),-4),4,0,STR_PAD_LEFT),8,0,STR_PAD_LEFT))
@@ -1945,8 +1957,11 @@ function supportdataextrakt($data,$mode=0,$file='') {	// Supportdaten extrahiere
    $array = array_combine($array[1],$array[2]);
   if($array) {
    if(ifset($file,'/\.zip$/i')) {
-    if($zip = data2zip($array))
+    if($zip = data2zip($array)) {
      file_contents($file,$zip);
+     foreach($array as $key => $var)			// Archivinhalt ausgeben
+      $list[] = array($key,number_format(strlen($var),0,",","."));
+    }
    }
    else {						// Tar-Archiv
     if($mode and $file)					// Tar-Archiv Initialisieren
@@ -1982,7 +1997,7 @@ function supportdataextrakt($data,$mode=0,$file='') {	// Supportdaten extrahiere
     foreach(array($a,$a+ceil(count($list)/2)) as $b)
      if(isset($list[$b]))
       $val[$a] = ((isset($val[$a])) ? $val[$a]."||" : "").$list[$b][0]."| ".$list[$b][1]." Bytes";
-    $info = textTable(out(implode("\n",$val),1));
+   $info = textTable(out(implode("\n",$val),1));
   }
   else
    dbug("Das zerlegen der Supportdaten ist fehlgeschlagen");
@@ -2040,7 +2055,7 @@ function dial($dial,$fon=false,$sid=0,$tfa=0) {		// Wahlhilfe
    request('POST',"/fon_num/dial_fonbook.lua",(($tfa or $cfg['fiwa'] < 680) ? "clicktodial=on&" : "")."port=$fon&btn_apply=$sid");
   }
   dbug("Dial: ".($dial ? "Wähle $dial" : "Auflegen"));
-  request((($cfg['fiwa'] >= 708) ? 'POST' : 'GET'),"/fon_num/fonbook_list.lua",($dial ? "dial=$rdial" : "hangup=&orig_port=$fon").$sid);
+  request((($cfg['fiwa'] >= 708) ? 'POST' : 'GET'),"/fon_num/fonbook_list.lua",($dial ? "dial=$rdial" : "hangup=&orig_port=$fon").($cfg['fiwa'] >= 739 ? "&useajax=1" : "").$sid);
  }
  else {	// Classic
   request('POST',"/cgi-bin/webcm","telcfg:settings/UseClickToDial=1"
@@ -2593,7 +2608,7 @@ function getevent($filter='aus',$sid=0) {		// Ereignisse abrufen
  global $cfg;
  $filters = array('aus','system','internet','telefon','wlan','usb');
  $jfilter = array('all','sys','net','fon','wlan','usb');
- $filter = (($var = ifset($filters,$filter)) !== false) ? $var : 0;
+ $filter = (($var = ifset($filters,$filter)) !== false and $var != count($filters)) ? $var : 0;
  dbug("Hole Ereignisse (Filter: {$filters[$filter]})");
  if(!$sid)
   $sid = $cfg['sid'];
@@ -2800,7 +2815,7 @@ function smarthome($cmd=0,$ain=0,$set=array(),$sid=0) {	// SmartHome Geräteliste
   $out = ($ain == 0 or $ain == 253) ? "aus" : (($ain == 1 or $ain == 254) ? "an" : (($ain == 2) ? 'um' : ($ain/2)."°C"));
  elseif($cmd == 'functionbit') {				// functionbit: functionbitmask Entschlüsseln
   $name = explode(',',"HANFUN Gerät,Bit1,Lampe,Bit3,Alarm-Sensor,Taster,Heizkörperregler,Energie Messgerät,Temperatursensor,Schaltsteckdose,"
-	."AVM DECT Repeater,Mikrofon,Gruppe,HANFUN Unit,Bit14,Schaltbar,Dimmbar,Farblampe,Rollladen,Bit19,Luftfeuchtigkeitssensor");
+	."DECT Repeater,Mikrofon,Gruppe,HANFUN Unit,Bit14,Schaltbar,Dimmbar,Farblampe,Rollladen,Bit19,Luftfeuchtigkeitssensor"); // (5-7,9-11 für AVM-Aktoren)
   foreach($name as $key => $var) {
    if($ain % 2)
     $set[$key] = $var;
@@ -2892,6 +2907,7 @@ function smarthome($cmd=0,$ain=0,$set=array(),$sid=0) {	// SmartHome Geräteliste
       $array['name'] = preg_match('/<name>(.*?)<\/name>/',$list[3][$key],$m) ? $m[1] : false;
       $array['device'] = preg_match_all('/<device identifier="([^"]*)"\s*\/>/',$list[3][$key],$m) ? $m[1] : array();
       $array['devices'] = array();
+      $c = count($template);
       if($array['device']) {
        foreach($array['device'] as $k => $v)
         foreach($device as $key => $var) {
@@ -2901,7 +2917,7 @@ function smarthome($cmd=0,$ain=0,$set=array(),$sid=0) {	// SmartHome Geräteliste
          }
        }
       }
-      $template[$c = count($template)] = $array;
+      $template[$c] = $array;
      }
    $idx = array();						// ID-Index anlegen
    foreach($device as $key => $var)
@@ -2930,7 +2946,7 @@ function smarthome($cmd=0,$ain=0,$set=array(),$sid=0) {	// SmartHome Geräteliste
     if($cmd == 'array')
      return $ain;
     if(is_array($ain))
-     if($cmd == 'info') {					// Aktordaten
+     if($cmd == 'info') {					// Aktordaten	(Info Ausgeben)
       $out = "Hauptdaten|Name:|$ain[name]
 |AIN:|$ain[identifier]
 |ID:|$ain[id]
@@ -2940,7 +2956,8 @@ function smarthome($cmd=0,$ain=0,$set=array(),$sid=0) {	// SmartHome Geräteliste
 .((ifset($ain['fwversion']) and (float)$ain['fwversion']) ? "\n|Firmware:|$ain[fwversion]" : "")
 .((isset($ain['txbusy'])) ? "\n|Beschäftigt:|".(($ain['txbusy']) ? "Ja" : "Nein") : "")
 .((ifset($ain['simpleonoff'])) ? "\n|Schaltzustand:|A".(($ain['simpleonoff']['state']) ? "n" : "us") : "")
-.((ifset($ain['battery'])) ? "\n|Batterie:|$ain[battery]%".(($ain['batterylow']) ? " (Schwach)" : "") : "")."\n";
+.(($a = ifset($ain['battery']) or isset($ain['link']) and $a = ifset($ain['link']['battery'])) ? "\n|Batterie:|$a%"
+	.(($ain['batterylow'] or isset($ain['link']) and ifset($ain['link']['batterylow'])) ? " (Schwach)" : "") : "")."\n";
       if(ifset($ain['template'])) {
        $array = array();
        foreach($ain['template'] as $var)
@@ -3030,6 +3047,8 @@ Der Heizkörperregler passt sich nun an den Hub des Heizungsventils an")) ? ((ifs
 |AIN:|$v[identifier]
 |ID:|$v[id]".((ifset($v['lastpressedtimestamp'])) ? "\n|Zuletzt betätigt:|".date('d.m.Y H:i:s',$v['lastpressedtimestamp'])." Uhr" : "")."\n";
       }
+      if(isset($ain['functionbitname'][4]) and isset($ain['alert']))	// Alarmsensor (Fenster Kontakt)
+       $out .= "Alarm-Sensor|Fenster:|".($ain['alert']['state'] ? "Geöffnet" : "Geschlossen")."\n";
       if(ifset($ain['etsiunitinfo']) and $x = $ain['etsiunitinfo'])// HAN-FUN Unit/Gerät
        $out .= "HAN-FUN Unit|Type:|$x[unittypename]\n|Interfaces:|".implode(", ",$x['interfacename'])."\n";
       if($cfg['dbug'])						// Debug-Modus
@@ -3038,7 +3057,7 @@ Der Heizkörperregler passt sich nun an den Hub des Heizungsventils an")) ? ((ifs
          unset($ain[$key]);
       dbug($ain,9);
      }
-     elseif($ain['present']) {
+     elseif($ain['present']) {					// Verschiedene Kommandos
       $do = array('on' => 'setswitchon', 'off' => 'setswitchoff', 'trip' => 'setswitchtoggle');
       $d0 = array_flip(array('off','on','trip'));
       $aid = str_replace(' ','',$ain['identifier']);
@@ -3051,7 +3070,7 @@ Der Heizkörperregler passt sich nun an den Hub des Heizungsventils an")) ? ((ifs
       }
       elseif(ifset($ain['simpleonoff']) and ifset($cmd,'/on|off/'))// Universal an / aus
        $out = request('GET',$link,$parm."setsimpleonoff&onoff=".$d0[$cmd]."&ain=$aid");
-      elseif(ifset($ain['functionbitname'][9])) {		// Schaltsteckdosen
+      elseif(ifset($ain['functionbitname'][9]) or ifset($ain['functionbitname'][15])) {		// Schaltsteckdosen
        if(ifset($cmd,'/test/')) {				// test
         $out = "$ain[name] ist A".(($ain['switch']['state']) ? "N" : "US")." geschaltet!";
         if($ain['switch']['state'])
@@ -3175,6 +3194,8 @@ Der Heizkörperregler passt sich nun an den Hub des Heizungsventils an")) ? ((ifs
        $val = call_user_func(__FUNCTION__,'temp',$v['hkr']['tsoll']);
       elseif(isset($v['simpleonoff']['state']))			// Schaltlampe
        $val = ($v['simpleonoff']['state']) ? "an" : "aus";
+      elseif(isset($v['alert']))				// Alarm-Sensor (Fenster Kontakt)
+       $val = ($v['alert']['state']) ? "offen" : "geschlossen";
       else
        $val = "online";						// Unbekannt
      }
@@ -3398,7 +3419,7 @@ if(ifset($argc) and ifset($argv) and init($ver)) {	## CLI-Modus ##
    $cfg['argn'] = false;			// Alten Parametermodus aktivieren
   foreach($cfg['opts'] as $key => $var) {#=>	// Optionen auswerten und setzen
    $var = (is_array($var)) ? $var[0] : $var;	// Bei mehreren Argumenten, nur das erste benutzen - entspreche getArg("-$key")
-   if($key == 'h')	// help
+   if($key == 'h' or $key == "help")	// help
     $cfg['help'] = $var;
    elseif($key == 'd') {// Debug
     $cfg['dbug'] = ($val = ifset($var,'/^(\d+)(?:.(.+))?($)/')) ? intval($val[1]) : true;
@@ -3785,7 +3806,7 @@ Update:|-f||Fehler Ignorieren
          $key = ($c ? '-' : "").chr($a + $b * 32);	// Code-Zeichen berechnen
          $var = @strftime("%$key",$time);		// Code-Datum erstellen
          $val = str_replace(array("\n","\t"),array('\n','\t'),str_pad("%$key",4," ")."= $var");	// Code-Spalte erstellen
-         if($var and !ifset($var,"/^%?".preg_quote($key,'/')."$/") and !ifset($key,"/^-?".preg_quote($var,'/')."$/") and (!$c or preg_replace('/^%-?(\w)\s*/','%$1  ',$val) != $array[substr($key,1)]))
+         if($var !== false and !ifset($var,"/^%?".preg_quote($key,'/')."$/") and !ifset($key,"/^-?".preg_quote($var,'/')."$/") and (!$c or preg_replace('/^%-?(\w)\s*/','%$1  ',$val) != $array[substr($key,1)]))
           $array[$key] = str_replace('|','\|',$val);
         }
 //	ksort($array);
@@ -4797,8 +4818,8 @@ $self sd file:support.txt func:support.tar" : ""));
     $mode = ($file and preg_match($cfg['ptar'],$file,$var)) ? (($cfg['bzip'] and ifset($var[3])) ? 3 : ((ifset($var[2])) ? 2 : 1)) : 0;
     if(!$mode and $et and $file and makedir($file))			// Neues Verzeichniss erstellen
      $file = './';
-    if(file_exists($et) and is_file($et) and $data = file_contents($et) and $text = supportdataextrakt($data,$mode,$file))
-     out("\n$text\n");
+    if(file_exists($file) and is_file($file) and $et and $data = file_contents($file))	// Converter-Modus ('file' -> 'func')
+     out("\n".supportdataextrakt($data,($et and preg_match($cfg['ptar'],$et,$var)) ? (($cfg['bzip'] and ifset($var[3])) ? 3 : ((ifset($var[2])) ? 2 : 1)) : 0,$et)."\n");
     elseif($sid = (ifset($cfg['bsid'])) ? $cfg['bsid'] : login()) {
      if($cfg['bsid'] or $cfg['fiwa'] < 530 or isset($cfg['auth']['BoxAdmin'])) {
       $tm = ($var = getArg('-tm','/^(?:[ao](?:(n)|(us|ff)))?$/i') and (ifset($var[1]) or !ifset($var[2])));
@@ -4927,7 +4948,7 @@ $self $cfg[host] wh ." : ""));
    elseif($tel = getArg('tel') and ($fon = getArg('fon') or 1))
     if($sid = (ifset($cfg['bsid'])) ? $cfg['bsid'] : login(0,0,$tfa = $fon && getArg('-tf'))) {
      out(($cfg['bsid'] or $cfg['fiwa'] < 530 or isset($cfg['auth']['Dial']))
-	? ((dial($tel,$fon,$tfa)) ? "Rufnummer wurde gewählt" : errmsg(0,'dial'))
+	? ((dial($tel,$fon,0,$tfa)) ? "Rufnummer wurde gewählt" : errmsg(0,'dial'))
 	: errmsg("8:Benutzer hat nicht das Recht für die Wahlhilfe"));
      if(!ifset($cfg['bsid']))
       logout($sid);
@@ -5224,7 +5245,7 @@ Login:|-p:|[Protokoll]|Protokoll ($cfg[sock])
 |-pw:|[Pass]|Kennwort Angabe
 |-ui:|[Pass]|Anmeldekennwort (Bei Fernwartung)
 |-tf:|<TOTP>|Zwei-Faktor-Authentisierung
-|-ts:|[time]|Uhrzeit für 2FA festlegen (".date('d.m.Y H:i:s',$cfg['time']).")
+|-ts:|[time]|Uhrzeit für 2FA festlegen (".date('d.m.Y H:i:s',intval($cfg['time'])).")
 |-un:|[User]|Benutzername Angabe
 Request:|-b:|[Bytes]|Buffergröße ($cfg[sbuf])
 |-px:|[Proxy:Port]|HTTP-Proxy (".($cfg['proxy'] ? $cfg['proxy'] : "-").")
@@ -5232,7 +5253,7 @@ Request:|-b:|[Bytes]|Buffergröße ($cfg[sbuf])
 |-ua:|[String]|User-Agent (".preg_replace('/\s.*$/',' ...',$cfg['head']['User-Agent']).")
 Dateien:|-bz:|[Level]|ZIP Packstufe für BZip2-Mode festlegen ($cfg[bz])
 |-gz:|[Level]|zlib/GZip/ZIP Packstufe festlegen ({$cfg['zlib']['mode']})
-|-zb:|[Bits]|ZIP-Verschlüsselungsbits setzen (".($cfg['zb'] ? $cfg['zb'] : "-").")
+|-zb:|[Bits]|ZIP-Verschlüsselungsbits setzen (".(ifset($cfg['zb']) ? $cfg['zb'] : "-").")
 |-zp:|[Pass]|ZIP-Verschlüsselungskennwort setzen
 PHP:|-pe:|[Extension]|Lädt ohne rückfrage eine PHP-Erweiterung nach".((ifset($opts) ? "\n$opts" : ""))."}}");
   elseif($cfg['help'] === true and !ifset($cfg['arg']) or $cfg['help'] === -1)
